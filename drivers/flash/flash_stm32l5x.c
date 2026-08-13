@@ -21,8 +21,19 @@ LOG_MODULE_REGISTER(LOG_DOMAIN);
 #include "flash_stm32.h"
 
 #if defined(CONFIG_SOC_SERIES_STM32H5X)
-/* at this time stm32h5 mcus have 128KB (stm32h50x) or 2MB (stm32h56x/57x) */
-#define STM32_SERIES_MAX_FLASH	2048
+/*
+ * STM32H5 banks are contiguous at every flash size (e.g. H533RE 512 KB: bank1
+ * 0x00000-0x40000, bank2 0x40000-0x80000), so there is never an inter-bank gap
+ * to model. Defining this to the actual flash size makes the
+ * "CONFIG_FLASH_SIZE < STM32_SERIES_MAX_FLASH" test below always false, which
+ * selects the single-layout branch -- same reasoning as STM32U5 below.
+ *
+ * The previous value of 2048 assumed every H5 was either 128 KB or 2 MB and
+ * placed bank 2 at 1 MB. On a 512 KB H533 that produced a phantom 768 KB
+ * "page" at offset 0x40000, so flash_area_get_sectors() returned zero sectors
+ * for any partition above 0x40000 and settings/NVS failed with -EDOM.
+ */
+#define STM32_SERIES_MAX_FLASH	(CONFIG_FLASH_SIZE)
 #elif defined(CONFIG_SOC_SERIES_STM32L5X)
 #define STM32_SERIES_MAX_FLASH	512
 #elif defined(CONFIG_SOC_SERIES_STM32U5X)
